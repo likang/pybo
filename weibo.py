@@ -1,84 +1,152 @@
 #! /usr/bin/python
 # -*- encoding: utf-8 -*-
 import sys,cmd,re
+import os
+import ConfigParser
 import base64
 import json
 import urllib2,urllib
-from urlparse import urlparse
-from pydoc import pager
 
-class Weibo(cmd.Cmd):
-  def __init__(self):
-    cmd.Cmd.__init__(self)
-    self.prompt = 'Weibo: '
+class Weibo():
+  URLS = {}
+  URLS['timeline'] = 'http://api.t.sina.com.cn/statuses/friends_timeline.json'
 
-    username = 'username'
-    password = 'pass'
+  def __init__(self,config):
+    self.config = config
+    self.lines = []
+    username = config['username']
+    password = config['password']
     base64string = base64.encodestring('%s:%s' % (username,password))[:-1]
     self.auth_header = 'Basic %s' % base64string
     self.max_id = 0
 
-  def help_quit(self):
-    print "Quits the program"
-  def do_quit(self,line):
-    sys.exit()
-
-  def help_next_page(self):
-    print "print next page"
-  def do_next_page(self,pages):
-    url = 'http://api.t.sina.com.cn/statuses/friends_timeline.json'
-    params = {'source':'3743872231','max_id':self.max_id}
-    req = urllib2.Request(url,urllib.urlencode(params))
+  def request(self, api, params):
+    req = urllib2.Request(self.URLS[api],urllib.urlencode(params))
     req.add_header("Authorization",self.auth_header)
     try:
       handle = urllib2.urlopen(req)
-    except IOError, e:
-      print 'seems error'
-      sys.exit(1)
-    content = handle.read()
+    except:
+      content = '{}'
+    else :
+      content = handle.read()
+      handle.close()
     content = json.loads(content)
-    if not content or len(content) == 0:
-      print 'no tweet'
-      return
+    return content
+
+  def format_line(self,line,tab_index = 0):
+    step = width = self.config['width'] - tab_index
+    line = line.encode('gb18030')
 
     lines = []
-    for tweet in content:
-      text = tweet['text']
-      username = tweet['user']['name']
-      lines.append('%s : %s' % (username,text) )
-      tweet = tweet.get('retweeted_status')
-      if not tweet:
-        lines.append('')
-        continue
-      lines.append('  |')
-      text = tweet['text']
-      username = tweet['user']['name']
-      lines.append('   -- %s : %s\n' % (username,text))
-      #print '\n'.join(lines)
-    self.max_id = int(content[-1]['id']) + 1
-    pager('\n'.join(lines).encode('utf-8'))
-      
-        
+    start = 0
+    while line[start:]:
+      try:
+        s = line[start:start+step].decode('gb18030')
+        lines.append('%s%s' % (' '*tab_index,s))
+        start += step
+        step = width
+      except:
+        step = width - 1
 
-  def help_next_line(self):
-    print "print next line"
-  def do_next_line(self,params):
-    print "line"
+    return lines
 
-  def help_gg(self):
-    print "go to top"
-  def do_gg(self,params):
+  def go_to_top(self):
     self.max_id = 0
-    self.do_next_page(3)
-  
-  def emptyline(self):
-    self.do_next_page(3)
+    return self.timeline()
 
-  #alias
-  do_q = do_quit
-  do_n = do_next_line
+  def timeline(self):
+    params = {'source':'3743872231','max_id':self.max_id}
+    content = self.request('timeline',params)
+
+    lines = []
+    if not content or len(content) == 0:
+      lines.append('no tweet')
+      return lines
+
+    name_color = self.config['name_color']
+    end_color  = self.config['end_color']
+
+    for tweet in content:
+      tab = 0
+      while tweet:
+        text = tweet['text']
+        username = tweet['user']['name']
+        lines.append('%s%s%s%s' % (' '*tab,name_color,username,end_color))
+        lines.extend(self.format_line(text,tab))
+        #if tweet.get('original_pic'):
+        #  lines.extend(self.format_line('Pic: '+tweet.get('original_pic'), tab))
+        tab += 4
+        tweet = tweet.get('retweeted_status')
+
+      lines.append('')
+
+    self.max_id = int(content[-1]['id']) + 1
+    return lines
+
+class Config():
+  SECTION = 'weibo'
+  COLORS = {}
+  COLORS['HEADER' ] = '\033[95m'
+  COLORS['BLUE'   ] = '\033[94m'
+  COLORS['GREEN'  ] = '\033[92m'
+  COLORS['WARNING'] = '\033[93m'
+  COLORS['FAIL'   ] = '\033[91m'
+  COLORS['END'    ] = '\033[0m'
+  #defaults
+  name_color   = 'BLUE'
+  end_color    = 'END'
+  app_id       = '3743872231' #please do not use it to do something bad :)
+  width        = '80'
+  
+  def load(self):
+    file_path = os.path.expanduser('~/.weibo')
+    cp = ConfigParser.ConfigParser()
+    cp.read(file_path)
+    if not cp.has_section(self.SECTION):
+      cp.add_section(self.SECTION)
+    
+    attrs = ['username','password','name_color','app_id','width']
+    #check
+    self.cp_attr(cp,attrs)
+    self.raw_attr(attrs[:2])
+    #update
+    self.update_attr(cp,attrs)
+    f = open(file_path,'w')
+    cp.write(f)
+    f.close()
+
+  def update_attr(self,config_parser,options):
+    for attr in options:
+      config_parser.set(self.SECTION,attr,getattr(self,attr,''))
+
+  def cp_attr(self,config_parser,options):
+    for attr in options:
+      if config_parser.has_option(self.SECTION,attr):
+        setattr(self,attr,config_parser.get(self.SECTION,attr))
+
+  def raw_attr(self,options):
+    for attr in options:
+      while not getattr(self,attr,None):
+        setattr(self,attr,raw_input('%s : ' % attr))
+  
+  def __getitem__(self,key):
+    if key in ('username','password'):
+      return getattr(self,key)
+    if key in ('name_color','end_color'):
+      return self.__color('name_color') and self.__color(key)
+    if key == 'width':
+      try:
+        return int(self.width)
+      except:
+        return 80
+
+  def __color(self,key):
+    return self.COLORS.get(getattr(self,key,''),'')
+
 
 if __name__ == '__main__':
-  weibo = Weibo()
-  weibo.do_next_page(1)
-  weibo.cmdloop()
+  config = Config()
+  config.load()
+
+  weibo = Weibo(config)
+  print '\n'.join(weibo.timeline())
