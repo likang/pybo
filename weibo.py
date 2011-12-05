@@ -63,7 +63,7 @@ class Weibo():
       lines.append('no tweet')
       return lines
 
-    name_color = self.config['name_color']
+    author_color = self.config['author_color']
     end_color  = self.config['end_color']
 
     for tweet in content:
@@ -71,7 +71,7 @@ class Weibo():
       while tweet:
         text = tweet['text']
         username = tweet['user']['name']
-        lines.append('%s%s%s%s' % (' '*tab,name_color,username,end_color))
+        lines.append('%s%s%s%s' % (' '*tab,author_color,username,end_color))
         lines.extend(self.format_line(text,tab))
         #if tweet.get('original_pic'):
         #  lines.extend(self.format_line('Pic: '+tweet.get('original_pic'), tab))
@@ -93,7 +93,7 @@ class Config():
   COLORS['FAIL'   ] = '\033[91m'
   COLORS['END'    ] = '\033[0m'
   #defaults
-  name_color   = 'BLUE'
+  author_color   = 'BLUE'
   end_color    = 'END'
   app_id       = '3743872231' #please do not use it to do something bad :)
   width        = '80'
@@ -105,7 +105,7 @@ class Config():
     if not cp.has_section(self.SECTION):
       cp.add_section(self.SECTION)
     
-    attrs = ['username','password','name_color','app_id','width']
+    attrs = ['username','password','author_color','app_id','width']
     #check
     self.cp_attr(cp,attrs)
     self.raw_attr(attrs[:2])
@@ -132,8 +132,8 @@ class Config():
   def __getitem__(self,key):
     if key in ('username','password'):
       return getattr(self,key)
-    if key in ('name_color','end_color'):
-      return self.__color('name_color') and self.__color(key)
+    if key in ('author_color','end_color'):
+      return self.__color('author_color') and self.__color(key)
     if key == 'width':
       try:
         return int(self.width)
@@ -141,7 +141,7 @@ class Config():
         return 80
 
   def __color(self,key):
-    return self.COLORS.get(getattr(self,key,''),'')
+    return self.COLORS.get(getattr(self,key,'').upper(),'')
 
 
 if __name__ == '__main__':
