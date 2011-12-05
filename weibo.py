@@ -21,12 +21,11 @@ def pager(weibo):
     getchar = lambda: sys.stdin.readline()[:-1][:1]
 
   try:
-    inc = int(os.popen('stty size', 'r').read().split()[0]) - 1
-    r = inc - 1
-    sys.stdout.write(join(lines[:inc], '\n') + '\n')
+    r = inc = int(os.popen('stty size', 'r').read().split()[0]) -1 -1
+    sys.stdout.write(join(lines[:inc + 1], '\n') + '\n')
 
     while lines[r:]:
-      inc = int(os.popen('stty size', 'r').read().split()[0]) - 1 - 1
+      inc = int(os.popen('stty size', 'r').read().split()[0]) -1 -1
 
       if not command:
         sys.stdout.write('-- more --')
