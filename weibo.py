@@ -1,11 +1,69 @@
 #! /usr/bin/python
 # -*- encoding: utf-8 -*-
-import sys,cmd,re
-import os
+import sys,os,cmd,re,json,base64
 import ConfigParser
-import base64
-import json
 import urllib2,urllib
+from string import join
+
+def pager(weibo):
+  """Page through text on a text terminal, modified from pydoc.ttypager."""
+  lines = weibo.timeline()
+  command = ''
+
+  try:
+    import tty
+    fd = sys.stdin.fileno()
+    old = tty.tcgetattr(fd)
+    tty.setcbreak(fd)
+    getchar = lambda: sys.stdin.read(1)
+  except (ImportError, AttributeError):
+    tty = None
+    getchar = lambda: sys.stdin.readline()[:-1][:1]
+
+  try:
+    inc = int(os.popen('stty size', 'r').read().split()[0]) - 1
+    r = inc - 1
+    sys.stdout.write(join(lines[:inc], '\n') + '\n')
+
+    while lines[r:]:
+      inc = int(os.popen('stty size', 'r').read().split()[0]) - 1 - 1
+
+      if not command:
+        sys.stdout.write('-- more --')
+      else:
+        sys.stdout.write(command)
+      sys.stdout.flush()
+
+      c = getchar()
+      if command or c == ':':
+        if c in ['\r','\n']:
+          #process command
+          command = c = ''
+
+        sys.stdout.write('\r\033[K\r')
+        command += c
+        continue
+      if c in ['q', 'Q']:
+        sys.stdout.write('\r          \r')
+        break
+      elif c in ['\r', '\n']:
+        sys.stdout.write('\r          \r' + lines[r] + '\n')
+        r = r + 1
+        continue
+      if c in ['b', 'B', '\x1b']:
+        r = r - inc - inc
+        if r < 0: r = 0
+
+      sys.stdout.write('\r\033[K\r')
+      for i in range (inc):
+        sys.stdout.write('\033[1A\033[K\r')
+      sys.stdout.write(join(lines[r:r+inc+1], '\n') + '\n')
+      r = r + inc
+
+  finally:
+    if tty:
+      tty.tcsetattr(fd, tty.TCSAFLUSH, old)
+
 
 class Weibo():
   URLS = {}
@@ -149,4 +207,4 @@ if __name__ == '__main__':
   config.load()
 
   weibo = Weibo(config)
-  print '\n'.join(weibo.timeline())
+  pager(weibo)
