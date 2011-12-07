@@ -173,7 +173,7 @@ class Config():
   width        = 80
   
   def load(self):
-    file_path = os.path.expanduser('~/.weibo')
+    file_path = os.path.expanduser('~/.pybo')
     cp = ConfigParser.ConfigParser()
     cp.read(file_path)
     if not cp.has_section(self.SECTION):

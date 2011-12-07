@@ -1,9 +1,11 @@
 pybo
 ====
 Play [weibo](http://weibo.com) just like Vi/Emacs.
-Run
----
-<pre><code>python pybo.py</code></pre>
+Get & Run
+---------
+<pre><code>curl -0 https://raw.github.com/likang/pybo/master/pybo.py > pybo.py
+python pybo.py
+</code></pre>
 
 Usage
 -----
