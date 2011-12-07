@@ -166,8 +166,7 @@ class Weibo():
     self.max_id = int(content[-1]['id']) + 1
     return lines
 
-class Config():
-  SECTION = 'sina'
+class Config(section):
   #defaults
   app_id       = 3743872231 #please do not use it to do something bad :)
   width        = 80
@@ -176,8 +175,8 @@ class Config():
     file_path = os.path.expanduser('~/.pybo')
     cp = ConfigParser.ConfigParser()
     cp.read(file_path)
-    if not cp.has_section(self.SECTION):
-      cp.add_section(self.SECTION)
+    if not cp.has_section(self.section):
+      cp.add_section(self.section)
     
     attrs = ['username','password','app_id','width']
     #check
@@ -191,12 +190,12 @@ class Config():
 
   def update_attr(self,config_parser,options):
     for attr in options:
-      config_parser.set(self.SECTION,attr,getattr(self,attr,''))
+      config_parser.set(self.section,attr,getattr(self,attr,''))
 
   def cp_attr(self,config_parser,options):
     for attr in options:
-      if config_parser.has_option(self.SECTION,attr):
-        setattr(self,attr,config_parser.get(self.SECTION,attr))
+      if config_parser.has_option(self.section,attr):
+        setattr(self,attr,config_parser.get(self.section,attr))
 
   def raw_attr(self,options):
     for attr in options:
@@ -219,7 +218,7 @@ class Config():
 
 
 if __name__ == '__main__':
-  config = Config()
+  config = Config('sina')
   config.load()
 
   weibo = Weibo(config)

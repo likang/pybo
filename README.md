@@ -1,6 +1,7 @@
 pybo
 ====
-Play [weibo](http://weibo.com) just like Vi/Emacs.
+Play [weibo](http://weibo.com) on terminal (Linux/Unix/Mac).
+
 Get & Run
 ---------
 <pre><code>curl -0 https://raw.github.com/likang/pybo/master/pybo.py > pybo.py
