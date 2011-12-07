@@ -5,8 +5,16 @@ import ConfigParser
 import urllib2,urllib
 from string import join
 
+render_name  = lambda s: '\033[94m%s\033[m' % s
+render_error = lambda s: '\033[41m\033[37m %s \033[m' % s
+
 def pager(weibo):
   """Page through text on a text terminal, modified from pydoc.ttypager."""
+  write = sys.stdout.write
+  stty_height    = lambda: int(os.popen('stty size', 'r').read().split()[0])
+  clear_line     = lambda: write('\r\033[K')
+  clear_pre_line = lambda: write('\033[1A\r\033[K')
+
   lines = weibo.timeline()
   command = ''
 
@@ -21,44 +29,56 @@ def pager(weibo):
     getchar = lambda: sys.stdin.readline()[:-1][:1]
 
   try:
-    r = inc = int(os.popen('stty size', 'r').read().split()[0]) -1 -1
-    sys.stdout.write(join(lines[:inc + 1], '\n') + '\n')
+    r = inc = stty_height() -1 -1
+    write(join(lines[:inc + 1], '\n') + '\n')
 
     while lines[r:]:
-      inc = int(os.popen('stty size', 'r').read().split()[0]) -1 -1
+      inc = stty_height() -1 -1
 
-      if not command:
-        sys.stdout.write('-- more --')
+      if not command and not weibo.error:
+        write('-- %s/%s --' % (r,len(lines)))
+      elif command:
+        write(command)
       else:
-        sys.stdout.write(command)
+        write(render_error(weibo.error))
+        weibo.error = ''
       sys.stdout.flush()
 
       c = getchar()
+      if c == '\x1b':
+        '''press ESC'''
+        command = ''
+        clear_line()
+        continue
       if command or c == ':':
         if c in ['\r','\n']:
           #process command
+          weibo.error = 'unknown command: %s' % command
           command = c = ''
 
-        sys.stdout.write('\r\033[K\r')
+        clear_line()
         command += c
         continue
       if c in ['q', 'Q']:
-        sys.stdout.write('\r          \r')
+        clear_line()
+        for i in range (inc + 1): clear_pre_line()
         break
       elif c in ['\r', '\n']:
-        sys.stdout.write('\r          \r' + lines[r] + '\n')
-        r = r + 1
-        continue
-      if c in ['b', 'B', '\x1b']:
+        r = r - (inc -1)
+        if len(lines[r]) == 0: r += 1
+      if c in ['b', 'B']:
         r = r - inc - inc
         if r < 0: r = 0
 
-      sys.stdout.write('\r\033[K\r')
-      for i in range (inc):
-        sys.stdout.write('\033[1A\033[K\r')
-      sys.stdout.write(join(lines[r:r+inc+1], '\n') + '\n')
-      r = r + inc
+      clear_line()
+      for i in range (inc + 1): clear_pre_line()
 
+      write(join(lines[r:r+inc+1], '\n') + '\n')
+      r = r + inc
+      if r < len(lines) and len(lines[r]) == 0: r += 1
+    
+    for i in range (inc + 1): clear_pre_line()
+  
   finally:
     if tty:
       tty.tcsetattr(fd, tty.TCSAFLUSH, old)
@@ -76,34 +96,41 @@ class Weibo():
     base64string = base64.encodestring('%s:%s' % (username,password))[:-1]
     self.auth_header = 'Basic %s' % base64string
     self.max_id = 0
+    self.min_id = 0
+    self.error  = ''
 
   def request(self, api, params):
     req = urllib2.Request(self.URLS[api],urllib.urlencode(params))
-    req.add_header("Authorization",self.auth_header)
+    req.add_header('Authorization',self.auth_header)
+
     try:
       handle = urllib2.urlopen(req)
     except:
-      content = '{}'
-    else :
-      content = handle.read()
-      handle.close()
-    content = json.loads(content)
-    return content
+      self.error = 'error while connecting to weibo'
+      return
 
-  def format_line(self,line,tab_index = 0):
-    step = width = self.config['width'] - tab_index
-    line = line.encode('gb18030')
+    content = handle.read()
+    handle.close()
+    try:
+      return json.loads(content)
+    except:
+      self.error = 'error while loading json'
+      return
+
+  def tidy_up(self,long_line,indent = 0):
+    step = width = self.config['width'] - indent
+    long_line = long_line.encode('gb18030')
 
     lines = []
     start = 0
-    while line[start:]:
+    while long_line[start:]:
       try:
-        s = line[start:start+step].decode('gb18030')
-        lines.append('%s%s' % (' '*tab_index,s))
+        line = long_line[start : start + step].decode('gb18030')
+        lines.append('%s%s' % (' '*indent, line))
         start += step
         step = width
       except:
-        step = width - 1
+        step -= 1
 
     return lines
 
@@ -112,27 +139,26 @@ class Weibo():
     return self.timeline()
 
   def timeline(self):
-    params = {'source':'3743872231','max_id':self.max_id}
+    params = {'source':self.config['app_id'],'max_id':self.max_id}
     content = self.request('timeline',params)
 
-    lines = []
     if not content or len(content) == 0:
-      lines.append('no tweet')
-      return lines
+      return
 
+    lines = []
     author_color = self.config['author_color']
     end_color  = self.config['end_color']
 
     for tweet in content:
-      tab = 0
+      indent = 0
       while tweet:
         text = tweet['text']
         username = tweet['user']['name']
-        lines.append('%s%s%s%s' % (' '*tab,author_color,username,end_color))
-        lines.extend(self.format_line(text,tab))
+        lines.append(' '*indent + render_name(username))
+        lines.extend(self.tidy_up(text,indent))
         #if tweet.get('original_pic'):
-        #  lines.extend(self.format_line('Pic: '+tweet.get('original_pic'), tab))
-        tab += 4
+        #  lines.extend(self.tidy_up('Pic: '+tweet.get('original_pic'), indent))
+        indent += 4
         tweet = tweet.get('retweeted_status')
 
       lines.append('')
@@ -141,19 +167,10 @@ class Weibo():
     return lines
 
 class Config():
-  SECTION = 'weibo'
-  COLORS = {}
-  COLORS['HEADER' ] = '\033[95m'
-  COLORS['BLUE'   ] = '\033[94m'
-  COLORS['GREEN'  ] = '\033[92m'
-  COLORS['WARNING'] = '\033[93m'
-  COLORS['FAIL'   ] = '\033[91m'
-  COLORS['END'    ] = '\033[0m'
+  SECTION = 'sina'
   #defaults
-  author_color   = 'BLUE'
-  end_color    = 'END'
-  app_id       = '3743872231' #please do not use it to do something bad :)
-  width        = '80'
+  app_id       = 3743872231 #please do not use it to do something bad :)
+  width        = 80
   
   def load(self):
     file_path = os.path.expanduser('~/.weibo')
@@ -162,10 +179,10 @@ class Config():
     if not cp.has_section(self.SECTION):
       cp.add_section(self.SECTION)
     
-    attrs = ['username','password','author_color','app_id','width']
+    attrs = ['username','password','app_id','width']
     #check
     self.cp_attr(cp,attrs)
-    self.raw_attr(attrs[:2])
+    self.raw_attr(attrs[:3])
     #update
     self.update_attr(cp,attrs)
     f = open(file_path,'w')
@@ -189,16 +206,16 @@ class Config():
   def __getitem__(self,key):
     if key in ('username','password'):
       return getattr(self,key)
-    if key in ('author_color','end_color'):
-      return self.__color('author_color') and self.__color(key)
     if key == 'width':
       try:
         return int(self.width)
       except:
         return 80
-
-  def __color(self,key):
-    return self.COLORS.get(getattr(self,key,'').upper(),'')
+    if key == 'app_id':
+      try:
+        return int(self.app_id)
+      except:
+        return 3743872231
 
 
 if __name__ == '__main__':
