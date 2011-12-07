@@ -1,10 +1,12 @@
 pybo
----
+====
 Play [weibo](http://weibo.com) just like Vi/Emacs.
-## Run ##
+Run
+---
 <pre><code>python pybo.py</code></pre>
 
-## Usage ##
+Usage
+-----
 <pre>
 | Key         | Action               |
 |-------------|----------------------|
@@ -15,7 +17,8 @@ Play [weibo](http://weibo.com) just like Vi/Emacs.
 | :command    | run command          |
 </pre> 
 
-## Config File ##
+Config File
+-----------
 Location: ~/.pybo  
 Options :
 
