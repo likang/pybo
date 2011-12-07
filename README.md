@@ -1,5 +1,8 @@
-## pybo ##
-Play [weibo](http://weibo.com) just like VI.
+pybo
+---
+Play [weibo](http://weibo.com) just like Vi/Emacs.
+## Run ##
+<pre><code>python pybo.py</code></pre>
 
 ## Usage ##
 <pre>
@@ -10,15 +13,15 @@ Play [weibo](http://weibo.com) just like VI.
 | b or B      | back one screen      |
 | q or Q      | quit                 |
 | :command    | run command          |
-</pre>
+</pre> 
 
 ## Config File ##
-Location: ~/.weibo  
+Location: ~/.pybo  
 Options :
 
 * username  
 * password  
 * app\_id  
-  The app id got from Sina, you can regist another app on open.weibo.com, or just use mine.    
+  The app id got from Sina, you can regist another app on [open.weibo.com](http://open.weibo.com), or just use mine.    
 * width  
   Max width of the output
