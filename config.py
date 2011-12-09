@@ -1,52 +1,49 @@
+# -*- encoding:utf-8 -*-
+import os,sys,ConfigParser
+
 class Config:
-  #defaults
-  app_id       = 3743872231 
-  width        = 80
+  file_path = '~/.pybo'
 
   def __init__(self, section):
-    self.section = section
+    self.__section__ = section
+    self.app_id  = 3743872231 
+    self.width   = 80
+    self.username = ''
+    self.password = ''
+    self.access_token  = ''
+    self.token_expires = 0
+
+    self.load()
   
   def load(self):
-    file_path = os.path.expanduser('~/.pybo')
-    cp = ConfigParser.ConfigParser()
-    cp.read(file_path)
-    if not cp.has_section(self.section):
-      cp.add_section(self.section)
-    
-    attrs = ['username','password','app_id','width']
-    #check
-    self.cp_attr(cp,attrs)
-    self.raw_attr(attrs[:3])
-    #update
-    self.update_attr(cp,attrs)
-    f = open(file_path,'w')
+    cp = self.__get_config_parser()
+
+    for key,value in self.__dict__.items:
+      if key.startswith('__'):  continue
+      if not cp.has_option(self.__section__, key):  continue
+
+      if type(value).__name__ == 'int':
+        try:  setattr(self, key, cp.getint(self.__section__, key))
+        except: 
+          print "invalid option '%s' of section %s in file: %s" % (key, self.__section__, self.file_path)
+          sys.exit(2)
+      setattr(self, key) == cp.get(self.__section__, key)
+
+  def write_back(self):
+    cp = self.__get_config_parser()
+    if not cp.has_section(self.__section__):
+      cp.add_section(self.__section__)
+    for key,value in self.__dict__.items:
+      if key.startswith('__'):  continue
+      cp.set(self.__section__, key, value)
+
+    full_path = os.path.expanduser(self.file_path)
+    f = open(full_path, 'w')
     cp.write(f)
     f.close()
 
-  def update_attr(self,config_parser,options):
-    for attr in options:
-      config_parser.set(self.section,attr,getattr(self,attr,''))
-
-  def cp_attr(self,config_parser,options):
-    for attr in options:
-      if config_parser.has_option(self.section,attr):
-        setattr(self,attr,config_parser.get(self.section,attr))
-
-  def raw_attr(self,options):
-    for attr in options:
-      while not getattr(self,attr,None):
-        setattr(self,attr,raw_input('%s : ' % attr))
-  
-  def __getitem__(self,key):
-    if key in ('username','password'):
-      return getattr(self,key)
-    if key == 'width':
-      try:
-        return int(self.width)
-      except:
-        return 80
-    if key == 'app_id':
-      try:
-        return int(self.app_id)
-      except:
-        return 3743872231
+  def __get_config_parser(self):
+    full_path = os.path.expanduser(self.file_path)
+    cp = ConfigParser.ConfigParser()
+    cp.read(full_path)
+    return cp
