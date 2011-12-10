@@ -11,13 +11,14 @@ stty_height    = lambda: int(os.popen('stty size', 'r').read().split()[0])
 clear_line     = lambda: write('\r\033[K')
 clear_pre_line = lambda: write('\033[1A\r\033[K')
 
-class pager():
-  lines = weibo.timeline()
-  command = ''
+class pager:
 
   def __init__(self, weibo):
     self.weibo = weibo
 
+  def 
+
+  def loop(self):
   try:
     import tty
     fd = sys.stdin.fileno()
@@ -35,21 +36,21 @@ class pager():
     while lines[r:]:
       inc = stty_height() -1 -1
 
-      if not command and not weibo.error:
-        write('-- %s/%s --' % (r,len(lines)))
-      elif command:
+      if command:
         write(command)
-      else:
+      elif weibo.error:
         write(render_error(weibo.error))
         weibo.error = ''
+      else:
+        write('-- %s/%s --' % (r,len(lines)))
       sys.stdout.flush()
 
       c = getchar()
       if c == '\x1b':
-        '''press ESC'''
         command = ''
         clear_line()
         continue
+
       if command or c == ':':
         if c in ['\r','\n']:
           #process command
