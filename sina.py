@@ -16,6 +16,13 @@ class Sina(Weibo):
   def more(self):
     self.module.more()
 
+  def quit(self):
+    if not self.module == self.m_timeline:
+      self.do_timeline()
+    else:
+      self.module = None
+      self.lines = None
+
 class Timeline:
   def __init__(self, weibo):
     self.weibo  = weibo
