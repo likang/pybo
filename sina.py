@@ -14,23 +14,29 @@ class sina:
     
     def init_access_token(self):
         if os.path.exists(self.auth_file_path):
-            lines = open(self.auth_file_path, 'r').readlines()
+            f = open(self.auth_file_path, 'r')
+            lines = f.readlines()
+            f.close()
         else:
             print 'Please open the url, login to sina(if needed), then folow the guide on the website\n'
             print self.client.get_authorize_url(), '\n'
+
             response = raw_input()
             lines = response.split(':')
             lines[1] = str(int(time.time()) + int(lines[1]))
+
             f = open(self.auth_file_path, 'w')
             f.writelines('\n'.join(lines))
             f.close()
 
-        access_token = lines[0].strip()
-        expires_in   = int(lines[1].strip())
+        access_token = lines[0]
+        expires_in   = int(lines[1])
+        self.userid = int(lines[2])
         self.client.set_access_token(access_token, expires_in)
 
     def timeline(self):
-        return response = self.client.statuses__public_timeline()
+        response = self.client.statuses__home_timeline()
+        return response
         """
         lines = []
         for tweet in response:
