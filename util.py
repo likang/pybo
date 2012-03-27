@@ -2,6 +2,18 @@
 import unicodedata
 
 def unicode_line_folding(long_line, width, line_prifix=''): 
+    '''
+    result of unicodedata.east_asian_width
+
+    A         ; Ambiguous
+    F         ; Fullwidth
+    H         ; Halfwidth
+    N         ; Neutral
+    Na        ; Narrow
+    W         ; Wide
+
+    (see http://www.unicode.org/reports/tr44/tr44-4.html)
+    '''
     lines = []
     if (width < 2):
         return lines 

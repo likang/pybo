@@ -39,6 +39,9 @@ class sina:
         self.userid = int(lines[2])
         self.client.set_access_token(access_token, expires_in)
 
+    def index(self):
+        return self.timeline();
+
     def timeline(self):
         response = self.client.statuses__home_timeline().statuses
 
@@ -47,14 +50,19 @@ class sina:
             indent = u''
 
             while tweet:
+                line_block = []
                 text = tweet.text
                 username = tweet.user.name
-                lines.append(indent + username)
-                lines.extend(unicode_line_folding(text, config.width, indent))
+                line_block.append(indent + username)
+                line_block.extend(unicode_line_folding(text, config.width, indent))
 
                 tweet = tweet.get('retweeted_status', None)
-                indent += u'    '
-                lines.append('')
+                if tweet:
+                    indent += u'    '
+                else:
+                    line_block.append(u'')
+
+                lines.append(line_block)
 
         return lines
 
