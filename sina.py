@@ -4,12 +4,17 @@ import os
 import config
 import time
 from sinapi import APIClient as SinaClient
+from util import unicode_line_folding
 
 class sina:
     def __init__(self):
         self.auth_file_path = 'tmp/sinauth'
         self.timeline_max_id = 0
-        self.client = SinaClient('3743872231',None,'http://pipeline.sinaapp.com/pybo/sina_callback.php')
+        self.client = SinaClient(
+                app_key = '3743872231',
+                app_secret = None,
+                redirect_uri = 'http://pipeline.sinaapp.com/pybo/sina_callback.php',
+                version = '1')
         self.init_access_token()
     
     def init_access_token(self):
@@ -35,23 +40,21 @@ class sina:
         self.client.set_access_token(access_token, expires_in)
 
     def timeline(self):
-        response = self.client.statuses__home_timeline()
-        return response
-        """
+        response = self.client.statuses__home_timeline().statuses
+
         lines = []
         for tweet in response:
-            indent = 0
-        while tweet:
-            text = tweet['text']
-        username = tweet['user']['name']
-        lines.append(' '*indent + self.weibo.render_name(username))
-        lines.extend(self.weibo.tidy_up(text,indent))
-        indent += 4
-        tweet = tweet.get('retweeted_status')
+            indent = u''
 
-        lines.append('')
+            while tweet:
+                text = tweet.text
+                username = tweet.user.name
+                lines.append(indent + username)
+                lines.extend(unicode_line_folding(text, config.width, indent))
 
-        self.max_id = int(content[-1]['id']) + 1
-        self.lines.extend(lines)
-        """
+                tweet = tweet.get('retweeted_status', None)
+                indent += u'    '
+                lines.append('')
+
+        return lines
 

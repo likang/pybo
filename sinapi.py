@@ -153,7 +153,10 @@ class APIClient(object):
         self.redirect_uri = redirect_uri
         self.response_type = response_type
         self.auth_url = 'https://%s/oauth2/' % domain
-        self.api_url = 'https://%s/%s/' % (domain, version)
+        if(version == '1'):
+            self.api_url = 'https://%s/' % domain
+        else:
+            self.api_url = 'https://%s/%s/' % (domain, version)
         self.access_token = None
         self.expires = 0.0
         self.get = HttpObject(self, _HTTP_GET)

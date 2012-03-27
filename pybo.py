@@ -14,14 +14,7 @@ if __name__ == '__main__':
 
     #print getattr(__import__(module_name), fromlist=[module_name])
     module = getattr(__import__(name = module_name), module_name)()
-    statuses = module.timeline().statuses
+    lines = module.timeline()
 
-    for tweet in statuses:
-        print tweet.user.screen_name, ":", tweet.text, tweet.id
-    """ 
-    global config
-    config = Config()
-
-    simvim = simvim(module)
-    simvim.loop()
-    """
+    for line in lines:
+        print line
