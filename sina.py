@@ -45,24 +45,25 @@ class sina:
     def timeline(self):
         response = self.client.statuses__home_timeline().statuses
 
-        lines = []
-        for tweet in response:
-            indent = u''
+        tweets = []
+        for tweet_json in response:
+            indent = 0
 
-            while tweet:
-                line_block = []
-                text = tweet.text
-                username = tweet.user.name
-                line_block.append(indent + username)
-                line_block.extend(unicode_line_folding(text, config.width, indent))
+            while tweet_json:
+                tweet = {}
+                tweet['post']= tweet_json.text
+                tweet['user']= tweet_json.user.name
+                tweet['extra'] = '( %s/%s )' % (tweet_json.user.friends_count, tweet_json.user.followers_count)
+                tweet['indent'] = indent
 
-                tweet = tweet.get('retweeted_status', None)
-                if tweet:
-                    indent += u'    '
+                tweet_json = tweet_json.get('retweeted_status', None)
+                if tweet_json:
+                    tweet['is_leaf'] = False
+                    indent += 4
                 else:
-                    line_block.append(u'')
+                    tweet['is_leaf'] = True
 
-                lines.append(line_block)
+                tweets.append((tweet, tweet_json))
 
-        return lines
+        return tweets
 

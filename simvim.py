@@ -1,75 +1,56 @@
 # -*- coding: utf-8 -*-
-import curses
-import locale
+import urwid
+import config
 
-class simvim:
-    DOWN = 1
-    UP = -1
-    SPACE_KEY = 32
-    ESC_KEY = 27
-    screen = None
-    def __init__(self, module):
-        locale.setlocale(locale.LC_ALL, '')
+class TweetWidget(urwid.WidgetWrap):
+    def __init__(self, tweet, state):
+        self.state = state
 
-        self.screen = curses.initscr()
-        self.screen.keypad(1)
-        self.screen.border(0)
+        tweet_block = [   
+            # username and post state
+            ('flow', urwid.Padding(urwid.Text([
+                    tweet['user'],
+                    u'  ',
+                    ('brown', tweet['extra'])
+                ]),  
+                left = tweet['indent'])),
+            # post
+            ('flow', urwid.Padding(
+                urwid.AttrWrap(urwid.Text(tweet['post']), 'body', 'focus'),
+                left = tweet['indent']))
+        ]   
+        if tweet['is_leaf'] :
+            tweet_block.append((urwid.Text(u'')))
 
-        curses.noecho()
-        curses.cbreak()
-        curses.curs_set(0)
-        #curses.use_default_colors()
-        curses.start_color() 
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_GREEN) 
-        curses.init_pair(2, curses.COLOR_BLUE, curses.COLOR_WHITE) 
-        curses.init_pair(3, curses.COLOR_MAGENTA,curses.COLOR_BLACK) 
-        curses.init_pair(4, curses.COLOR_BLUE,curses.COLOR_BLACK) 
+        w = urwid.Pile(tweet_block)
+        w.set_focus(1)
+        self.__super.__init__(w)
 
-        self.module = module
-        self.lines = module.index()
+    def selectable (self):
+        return True
 
-        self.toLineNum = 0
-
-    def __del__(self):
-        curses.initscr()
-        curses.nocbreak()
-        curses.echo()
-        curses.endwin()
-
-    def loop(self):
-        while True:
-            self.displayScreen()
-            # get user command
-            c = self.screen.getch()
-            if c == curses.KEY_UP: 
-                self.updown(self.UP)
-            elif c == curses.KEY_DOWN:
-                self.updown(self.DOWN)
-            elif c == self.ESC_KEY:
-                self.exit()
-
-    def displayScreen(self):
-        self.screen.clear()
-
-        top = self.toLineNum
-        bottom = top + curses.LINES
-        cur = 0
-        cur_block = 0
-        while cur - top < bottom - 1:
-            for (index, line, ) in enumerate(self.lines[cur_block]):
-                if cur < top:
-                    continue
-                if (cur - top) >= (bottom - 1):
-                    break
-                if index == 0:
-                    self.screen.addstr(cur, 0, line.encode('utf-8'), curses.color_pair(4))
-                else:
-                    self.screen.addstr(cur, 0, line.encode('utf-8'))
-                cur += 1
-
-            cur_block += 1
-
-        self.screen.move(curses.LINES - 1, 0)
-        self.screen.refresh()
+    def keypress(self, size, key):
+       return key
 
 
+def keystroke (input):
+    if input in ('q', 'Q'):
+        raise urwid.ExitMainLoop()
+
+    """
+    if input is 'enter':
+        focus = listbox.get_focus()[0].content
+        view.set_header(urwid.AttrWrap(urwid.Text(
+            'selected: %s' % str(focus)), 'head'))
+    """
+
+def loop(tweets):
+    items = []
+    for tweet,state in tweets:
+        items.append(TweetWidget(tweet, state))
+
+    footer = urwid.Text(u'')
+    listbox = urwid.ListBox(urwid.SimpleListWalker(items))
+    view = urwid.Frame(urwid.AttrWrap(listbox, 'body'), footer = footer)
+    loop = urwid.MainLoop(view, config.palette, unhandled_input=keystroke)
+    loop.run()

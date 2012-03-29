@@ -3,7 +3,7 @@
 
 import sys
 import curses
-from simvim import simvim
+from simvim import loop
 
 
 if __name__ == '__main__':
@@ -14,6 +14,6 @@ if __name__ == '__main__':
 
     #print getattr(__import__(module_name), fromlist=[module_name])
     module = getattr(__import__(name = module_name), module_name)()
-    sv = simvim(module)
-    sv.loop()
+    tweets = module.timeline()
+    loop(tweets)
 
