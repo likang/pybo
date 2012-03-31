@@ -51,9 +51,12 @@ class sina:
 
             while tweet_json:
                 tweet = {}
-                tweet['post']= tweet_json.text
-                tweet['user']= tweet_json.user.name
-                tweet['extra'] = '( %s/%s )' % (tweet_json.user.friends_count, tweet_json.user.followers_count)
+                if tweet_json.get('deleted', None):
+                    tweet['post'] = u'抱歉，此微博已被原作者删除。如需帮助，请联系客服。http://t.cn/z0D6ZaQ'
+                else:
+                    tweet['post']= tweet_json.text
+                    tweet['user']= tweet_json.user.name
+                    tweet['extra'] = '( %s/%s )' % (tweet_json.user.friends_count, tweet_json.user.followers_count)
                 tweet['indent'] = indent
 
                 tweet_json = tweet_json.get('retweeted_status', None)

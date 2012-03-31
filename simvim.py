@@ -6,19 +6,22 @@ class TweetWidget(urwid.WidgetWrap):
     def __init__(self, tweet, state):
         self.state = state
 
-        tweet_block = [   
-            # username and post state
-            ('flow', urwid.Padding(urwid.Text([
-                    tweet['user'],
-                    u'  ',
-                    ('brown', tweet['extra'])
-                ]),  
-                left = tweet['indent'])),
+        tweet_block = []
+        if tweet.get('user'):
+            tweet_block.append(
+                # username and post state
+                ('flow', urwid.Padding(urwid.Text([
+                        tweet['user'],
+                        u'  ',
+                        ('brown', tweet['extra'])
+                    ]),  
+                    left = tweet['indent'])))
+        tweet_block.append(
             # post
             ('flow', urwid.Padding(
                 urwid.AttrWrap(urwid.Text(tweet['post']), 'body', 'focus'),
-                left = tweet['indent']))
-        ]   
+                left = tweet['indent'])))
+
         if tweet['is_leaf'] :
             tweet_block.append((urwid.Text(u'')))
 
@@ -30,7 +33,11 @@ class TweetWidget(urwid.WidgetWrap):
         return True
 
     def keypress(self, size, key):
-       return key
+        if key == 'j':
+            return 'down'
+        elif key == 'k':
+            return 'up'
+        return key
 
 
 def keystroke (input):
