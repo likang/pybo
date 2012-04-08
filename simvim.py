@@ -33,10 +33,6 @@ class TweetWidget(urwid.WidgetWrap):
         return True
 
     def keypress(self, size, key):
-        if key is 'j':
-            return 'down'
-        elif key is 'k':
-            return 'up'
         return key
 
 
@@ -51,14 +47,25 @@ def loop(tweets):
     def keystroke (input):
         if input in ('q', 'Q'):
             raise urwid.ExitMainLoop()
+        elif input is 'g':
+            listbox.set_focus(0)
+        elif input is 'G':
+            listbox.set_focus(len(items) -1)
 
     def keyfilter(input, raw):
         footer.set_text(u"Passed: %s " % input)
+        if len(input) == 0:
+            return input
         if type(input[0]) is tuple and input[0][0] == 'mouse press':
             if input[0][1] is 4:
-                return ['up']
+                input = ['up']
             elif input[0][1] is 5:
-                return ['down']
+                input = ['down']
+        elif type(input[0]) is str:
+            if input[0] is 'k':
+                input = ['up']
+            elif input[0] is 'j':
+                input = ['down']
         return input
 
     items = []

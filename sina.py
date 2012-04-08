@@ -38,6 +38,9 @@ class sina:
         expires_in   = int(lines[1])
         self.userid = int(lines[2])
         self.client.set_access_token(access_token, expires_in)
+        if self.client.is_expires():
+            os.remove(self.auth_file_path)
+            self.init_access_token()
 
     def index(self):
         return self.timeline();
